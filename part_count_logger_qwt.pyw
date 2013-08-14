@@ -28,7 +28,11 @@ class PartCountLogger2(Qwt.QwtPlot):
         self.load_config()
 
         # Open the serial port
-        self.open_serial(self.port)
+        try:
+            self.open_serial(self.port)
+        except serial.SerialException, e:
+            Qt.QMessageBox.about(self, "Error", "Could not open serial connection using {}".format(self.port))
+            sys.exit(-1)
 
         # Initialise timestamp and counter used to determine when to 
         # stop reading data from the particle counter
