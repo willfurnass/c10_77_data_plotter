@@ -11,9 +11,17 @@ from PyQt4.Qwt5.anynumpy import *
 import serial
 import sys
 import time
+import win32com.shell.shell as shell
 
+ASADMIN = 'asadmin'
+if sys.platform == 'win32' and sys.argv[-1] != ASADMIN:
+    # Re-run script with elev prileges when started by ordinary user
+    script = os.path.abspath(sys.argv[0])
+    params = ' '.join([script] + sys.argv[1:] + [ASADMIN])
+    shell.ShellExecuteEx(lpVerb='runas', lpFile=sys.executable, lpParameters=params)
+    sys.exit(0)
 
-class PartCountLogger2(Qwt.QwtPlot):
+class PartCountLogger(Qwt.QwtPlot):
     def __init__(self, *args):
         Qwt.QwtPlot.__init__(self, *args)
 
@@ -185,7 +193,7 @@ class PartCountLogger2(Qwt.QwtPlot):
         self.replot()
 
 def make():
-    demo = PartCountLogger2()
+    demo = PartCountLogger()
     demo.resize(500, 300)
     demo.show()
     return demo
