@@ -51,11 +51,11 @@ class PartCountLogger2(Qwt.QwtPlot):
 
         # Curves to plot
         self.curves = list()
-        color_names = "blue red cyan darkCyan green magenta yellow darkGreen"
+        color_names = "blue red cyan darkCyan green magenta yellow darkGreen".split()
         for bin_name, color_name in zip(self.size_bin_names, color_names):
             curve = Qwt.QwtPlotCurve(bin_name)
             curve.setPen(Qt.QPen(getattr(Qt.Qt, color_name)))
-            curve.attache(self)
+            curve.attach(self)
             self.curves.append(curve)
 
         # Axis labels
@@ -63,8 +63,8 @@ class PartCountLogger2(Qwt.QwtPlot):
         self.setAxisTitle(Qwt.QwtPlot.yLeft, "Particle counts per ml")
 
         # Enable axis autoscaling
-        self.setAxisAutoScale(Qwt.QwtPlot.xBottom, True)
-        self.setAxisAutoScale(Qwt.QwtPlot.yLeft, True)
+        self.setAxisAutoScale(Qwt.QwtPlot.xBottom)
+        self.setAxisAutoScale(Qwt.QwtPlot.yLeft)
 
         # Legend
         legend = Qwt.QwtLegend()
@@ -126,12 +126,12 @@ class PartCountLogger2(Qwt.QwtPlot):
 
     def captureData(self):
         """Prod the particle counter over RS242 and append recived data to instance attr lists"""
-        ser.write("S\r\n")
+        self.ser.write("S\r\n")
         time.sleep(1)
         bytes_read = ""
 
-        while ser.inWaiting() > 0:
-            bytes_read += ser.read(1)
+        while self.ser.inWaiting() > 0:
+            bytes_read += self.ser.read(1)
         if bytes_read == '':
             raise Exception("Device did not respond to prompt")
 
@@ -168,17 +168,17 @@ class PartCountLogger2(Qwt.QwtPlot):
             curve.setData(self.tstamps, counts)
 
     def timerEvent(self, e):
-        now = datetime.now()
-        if (self.last_read is None or now - last_read > self.dt) and \
-                (self.max_records is not None and not self.num_records >= self.max_records) and \
-                (self.log_until is not None and not self.log_until < now):
-            self.captureData()
-            self.write_csv()
-            self.update_curves()
-            self.records_read += 1
-            self.last_read = now
+        if (self.log_until is not None and self.log_until < datetime.now()) or \
+               (self.max_records is not None and self.records_read > self.max_records) or \
+               (self.last_read is not None and now - self.last_read < self.dt):
+            self.replot()
+            return
+        self.captureData()
+        self.write_csv()
+        self.update_curves()
+        self.records_read += 1
+        self.last_read = datetime.now()
         self.replot()
-
 
 def make():
     demo = PartCountLogger2()
