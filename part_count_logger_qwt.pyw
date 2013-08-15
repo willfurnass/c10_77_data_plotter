@@ -168,7 +168,7 @@ class PartCountLogger(Qwt.QwtPlot):
     def write_csv(self):
         """Append most recently read data to CSV"""
         with open(self.csv_filename, 'a') as f:
-            csv.writer(f).writerow(self.tstamps[-1:].strftime("%Y-%m-%d %H:%M:%S") + \
+            csv.writer(f).writerow([self.tstamps[-1].strftime("%Y-%m-%d %H:%M:%S")] + \
                                    self.flowrates[-1:] + \
                                    [size_bin[-1] for size_bin in self.size_bins] + \
                                    self.cal[-1:] + \
