@@ -63,7 +63,8 @@ class PartCountLogger(Qwt.QwtPlot):
         self.setCanvasBackground(Qt.Qt.white)
 
         # Set plot title
-        self.setTitle("Particle counts")
+        start_time = datetime.now().replace(microsecond=0)
+        self.setTitle("Particle counts (starting from {})".format(start_time))
         self.insertLegend(Qwt.QwtLegend(), Qwt.QwtPlot.BottomLegend)
 
         # Curves to plot
@@ -146,7 +147,6 @@ class PartCountLogger(Qwt.QwtPlot):
         self.ser.write("S\r\n")
         time.sleep(1)
         bytes_read = ""
-
         while self.ser.inWaiting() > 0:
             bytes_read += self.ser.read(1)
         if bytes_read == '':
@@ -183,12 +183,16 @@ class PartCountLogger(Qwt.QwtPlot):
     def update_curves(self):
         """Link the plot curves to lists containing updated data"""
         for counts, curve in zip(self.size_bins, self.curves):
-            curve.setData(self.tstamps, counts)
+            t_0 = self.tstamps[0]
+            toffsets = [(t - t_0).total_seconds() for t in self.tstamps]
+            curve.setData(toffsets, counts)
 
     def timerEvent(self, e):
+        # NB need to subtract 1 from dt to allow for sleep
         if (self.log_until is not None and self.log_until < datetime.now()) or \
                 (self.max_records is not None and self.records_read > self.max_records) or \
-                (self.last_read is not None and now - self.last_read < self.dt):
+                (self.last_read is not None and 
+                        (datetime.now() - self.last_read).total_seconds() < self.dt - 1):
             self.replot()
             return
         self.captureData()
