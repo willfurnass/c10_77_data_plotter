@@ -11,15 +11,19 @@ from PyQt4.Qwt5.anynumpy import *
 import serial
 import sys
 import time
-import win32com.shell.shell as shell
+try:
+    import win32com.shell.shell as shell
+    ASADMIN = 'asadmin'
+    if sys.platform == 'win32' and sys.argv[-1] != ASADMIN:
+        # Re-run script with elev prileges when started by ordinary user
+        script = os.path.abspath(sys.argv[0])
+        params = ' '.join([script] + sys.argv[1:] + [ASADMIN])
+        shell.ShellExecuteEx(lpVerb='runas', lpFile=sys.executable, 
+                lpParameters=params)
+        sys.exit(0)
+except:
+    pass
 
-ASADMIN = 'asadmin'
-if sys.platform == 'win32' and sys.argv[-1] != ASADMIN:
-    # Re-run script with elev prileges when started by ordinary user
-    script = os.path.abspath(sys.argv[0])
-    params = ' '.join([script] + sys.argv[1:] + [ASADMIN])
-    shell.ShellExecuteEx(lpVerb='runas', lpFile=sys.executable, lpParameters=params)
-    sys.exit(0)
 
 class PartCountLogger(Qwt.QwtPlot):
     def __init__(self, *args):
@@ -39,7 +43,8 @@ class PartCountLogger(Qwt.QwtPlot):
         try:
             self.open_serial(self.port)
         except serial.SerialException, e:
-            Qt.QMessageBox.about(self, "Error", "Could not open serial connection using {}".format(self.port))
+            Qt.QMessageBox.about(self, "Error",
+                    "Could not open serial connection using {}".format(self.port))
             sys.exit(-1)
 
         # Initialise timestamp and counter used to determine when to 
@@ -50,7 +55,7 @@ class PartCountLogger(Qwt.QwtPlot):
         # Create lists for storing data from particle counter
         self.tstamps = list()
         self.size_bins = [list() for i in self.size_bin_names]
-        self.flows = list()
+        self.flowrates = list()
         self.cal = list()
         self.analog_inputs = list()
 
@@ -120,7 +125,7 @@ class PartCountLogger(Qwt.QwtPlot):
     def open_serial(self, port):
         """Establish a serial connection to the particle counter"""
         self.port = port
-        self.ser = serial.Serial(port=port, baudrate=9600, bytesize=8, 
+        self.ser = serial.Serial(port=port, baudrate=9600, bytesize=8,
                    parity='N', stopbits=1, timeout=5)
         return self.ser.isOpen()
 
@@ -133,7 +138,7 @@ class PartCountLogger(Qwt.QwtPlot):
         """
         if overwrite or not os.path.exists(self.csv_filename):
             with open(self.csv_filename, 'w') as f:
-                csv.writer(f).writerow(['tstamp', 'flowrate'] + \
+                csv.writer(f).writerow(['tstamp', 'flowrate'] +
                         self.size_bin_names + ['cal', 'alog1', 'alog2', 'alog3'])
 
     def captureData(self):
@@ -149,13 +154,14 @@ class PartCountLogger(Qwt.QwtPlot):
 
         # Separate echoed input from output by splitting on '=',
         # split the output on whitespace
-        # then convert each element in the resulting list from a hex string to an int
+        # then convert each element in the resulting list from a hex string
+        # to an int
         data = [int(i, 16) for i in bytes_read.partition('=')[2].split()]
 
         # Split data into various components
         self.tstamps.append(datetime.now())
         # Flowrate should be fixed at 60 ml/min
-        self.flowrates.append(data[0]) 
+        self.flowrates.append(data[0])
         # size_bins are >2um,>3um,>5um,>7um,>10um,>15um,>20um,>200um
         for count, size_bin in zip(data[1:9], self.size_bins):
             size_bin.append(count)
@@ -168,10 +174,10 @@ class PartCountLogger(Qwt.QwtPlot):
     def write_csv(self):
         """Append most recently read data to CSV"""
         with open(self.csv_filename, 'a') as f:
-            csv.writer(f).writerow([self.tstamps[-1].strftime("%Y-%m-%d %H:%M:%S")] + \
-                                   self.flowrates[-1:] + \
-                                   [size_bin[-1] for size_bin in self.size_bins] + \
-                                   self.cal[-1:] + \
+            csv.writer(f).writerow([self.tstamps[-1].strftime("%Y-%m-%d %H:%M:%S")] +
+                                   self.flowrates[-1:] +
+                                   [size_bin[-1] for size_bin in self.size_bins] +
+                                   self.cal[-1:] +
                                    [an_inp[-1] for an_inp in self.analog_inputs])
 
     def update_curves(self):
@@ -181,8 +187,8 @@ class PartCountLogger(Qwt.QwtPlot):
 
     def timerEvent(self, e):
         if (self.log_until is not None and self.log_until < datetime.now()) or \
-               (self.max_records is not None and self.records_read > self.max_records) or \
-               (self.last_read is not None and now - self.last_read < self.dt):
+                (self.max_records is not None and self.records_read > self.max_records) or \
+                (self.last_read is not None and now - self.last_read < self.dt):
             self.replot()
             return
         self.captureData()
@@ -191,6 +197,7 @@ class PartCountLogger(Qwt.QwtPlot):
         self.records_read += 1
         self.last_read = datetime.now()
         self.replot()
+
 
 def make():
     demo = PartCountLogger()
