@@ -63,8 +63,7 @@ class PartCountLogger(Qwt.QwtPlot):
         self.setCanvasBackground(Qt.Qt.white)
 
         # Set plot title
-        start_time = datetime.now().replace(microsecond=0)
-        self.setTitle("Particle counts (starting from {})".format(start_time))
+        self.setTitle("Particle counts")
         self.insertLegend(Qwt.QwtLegend(), Qwt.QwtPlot.BottomLegend)
 
         # Curves to plot
@@ -77,7 +76,8 @@ class PartCountLogger(Qwt.QwtPlot):
             self.curves.append(curve)
 
         # Axis labels
-        self.setAxisTitle(Qwt.QwtPlot.xBottom, "Time")
+        start_time = datetime.now().replace(microsecond=0)
+        self.setAxisTitle(Qwt.QwtPlot.xBottom, "Seconds since {}".format(start_time))
         self.setAxisTitle(Qwt.QwtPlot.yLeft, "Particle counts per ml")
 
         # Enable axis autoscaling
