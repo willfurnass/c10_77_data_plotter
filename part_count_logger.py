@@ -104,6 +104,10 @@ class PartCountLogger(Qwt.QwtPlot):
         """Read in the software config from a file"""
         config = ConfigParser.ConfigParser()
         config.read(cfg)
+        if len(config.sections()) < 1:
+            Qt.QMessageBox.about(self, "Error",
+                    "Could not read config file '{}'".format(cfg))
+            sys.exit(-1)
 
         # Port could be e.g. 'COM1' or "/dev/ttyUSB0"
         self.port = config.get('PartCountLogger', 'port')
