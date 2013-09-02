@@ -42,7 +42,7 @@ class PartCountLogger(Qwt.QwtPlot):
         # Open the serial port
         try:
             self.open_serial(self.port)
-        except serial.SerialException, e:
+        except serial.SerialException as e:
             Qt.QMessageBox.about(self, "Error",
                     "Could not open serial connection using {}".format(self.port))
             sys.exit(-1)
@@ -194,7 +194,7 @@ class PartCountLogger(Qwt.QwtPlot):
     def timerEvent(self, e):
         # NB need to subtract 1 from dt to allow for sleep
         if (self.log_until is not None and self.log_until < datetime.now()) or \
-                (self.max_records is not None and self.records_read > self.max_records) or \
+                (self.max_records is not None and self.records_read >= self.max_records) or \
                 (self.last_read is not None and 
                         (datetime.now() - self.last_read).total_seconds() < self.dt - 1):
             self.replot()
